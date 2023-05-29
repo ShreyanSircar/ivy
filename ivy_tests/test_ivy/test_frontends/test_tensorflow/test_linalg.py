@@ -3,7 +3,7 @@ import numpy as np
 from hypothesis import strategies as st
 import sys
 import ivy
-
+from scipy.linalg import expm
 # local
 import ivy_tests.test_ivy.helpers as helpers
 from ivy_tests.test_ivy.helpers import handle_frontend_test, assert_all_close
@@ -869,3 +869,75 @@ def test_tensorflow_diag(
         v=x[0],
         k=k,
     )
+#expm 
+@handle_frontend_test(
+    fn_tree="scipy.linalg.expm",
+    dtype_and_input=_get_dtype_and_matrix(),
+    test_with_out=st.just(False),
+)
+def test_scipy_expm(
+    *,
+    dtype_and_input,
+    frontend,
+    test_flags,
+    fn_tree,
+    on_device,
+):
+    input_dtype, x = dtype_and_input
+    helpers.test_frontend_function(
+        input_dtypes=input_dtype,
+        frontend=frontend,
+        test_flags=test_flags,
+        fn_tree=fn_tree,
+        on_device=on_device,
+        input=x[0],
+    )
+    
+# matmul
+@handle_frontend_test(
+    fn_tree="tensorflow.matmul",
+    dtype_x=helpers.dtype_and_values(
+        available_dtypes=helpers.get_dtypes("valid"),
+        shape=(3, 3),
+        num_arrays=2,
+        shared_dtype=True,
+        min_value=-1e04,
+        max_value=1e04,
+    ),
+    transpose_a=st.booleans(),
+    transpose_b=st.booleans(),
+    adjoint_a=st.booleans(),
+    adjoint_b=st.booleans(),
+    test_with_out=st.just(False),
+)
+def test_tensorflow_matmul(
+    *,
+    dtype_x,
+    transpose_a,
+    transpose_b,
+    adjoint_a,
+    adjoint_b,
+    frontend,
+    test_flags,
+    fn_tree,
+    on_device,
+):
+    input_dtype, x = dtype_x
+    if adjoint_a and transpose_a:
+        transpose_a = False
+    if adjoint_b and transpose_b:
+        transpose_b = False
+    helpers.test_frontend_function(
+        input_dtypes=input_dtype,
+        frontend=frontend,
+        test_flags=test_flags,
+        fn_tree=fn_tree,
+        on_device=on_device,
+        a=x[0],
+        b=x[1],
+        transpose_a=transpose_a,
+        transpose_b=transpose_b,
+        adjoint_a=adjoint_a,
+        adjoint_b=adjoint_b,
+    )
+
